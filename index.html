@@ -1,0 +1,1806 @@
+<!DOCTYPE html>
+<html lang="es" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Informática Cuestionario</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh; padding: 20px; color: #333;
+}
+.container { max-width: 700px; margin: 0 auto; }
+.header { text-align: center; color: #fff; padding: 30px 20px; }
+.header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; text-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+.header .meta { font-size: 14px; opacity: 0.9; }
+.progress-bar { background: rgba(255,255,255,0.3); border-radius: 10px; height: 8px; margin: 20px 0; overflow: hidden; }
+.progress-fill { background: #fff; height: 100%; width: 0%; transition: width 0.4s ease; border-radius: 10px; }
+.question { background: #fff; border-radius: 16px; padding: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); display: none; }
+.question.active { display: block; }
+.q-header { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 13px; color: #888; }
+.q-number { font-weight: 600; color: #667eea; }
+.q-text { font-size: 18px; font-weight: 600; line-height: 1.5; margin-bottom: 25px; color: #222; }
+.options { display: flex; flex-direction: column; gap: 12px; }
+.option-wrapper { display: flex; flex-direction: column; }
+.option {
+  display: flex; align-items: flex-start; gap: 14px; padding: 16px 18px;
+  border: 2px solid #e8e8e8; border-radius: 12px; background: #fafafa;
+  cursor: pointer; transition: all 0.2s; text-align: left; font-size: 15px; width: 100%;
+}
+[dir="rtl"] .option { text-align: right; flex-direction: row-reverse; }
+.option:hover:not(.disabled) { border-color: #667eea; background: #f5f3ff; }
+.option.selected { border-color: #667eea; background: #ede9fe; }
+.option.correct { border-color: #22c55e; background: #dcfce7; }
+.option.incorrect { border-color: #ef4444; background: #fee2e2; }
+.option.disabled { cursor: default; }
+.option.show-correct { border-color: #22c55e; background: #dcfce7; }
+.opt-label {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 50%; background: #e8e8e8;
+  font-weight: 700; font-size: 14px; flex-shrink: 0;
+}
+.option.selected .opt-label { background: #667eea; color: #fff; }
+.option.correct .opt-label { background: #22c55e; color: #fff; }
+.option.incorrect .opt-label { background: #ef4444; color: #fff; }
+.option.show-correct .opt-label { background: #22c55e; color: #fff; }
+.opt-text { padding-top: 5px; line-height: 1.5; }
+
+/* Individual option feedback */
+.option-feedback {
+  margin: 8px 0 4px 46px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+[dir="rtl"] .option-feedback { margin-left: 0; margin-right: 46px; }
+.option-feedback.correct-feedback {
+  background: #dcfce7;
+  border-left: 3px solid #22c55e;
+}
+.option-feedback.incorrect-feedback {
+  background: #fef3f2;
+  border-left: 3px solid #fca5a5;
+}
+[dir="rtl"] .option-feedback.correct-feedback,
+[dir="rtl"] .option-feedback.incorrect-feedback {
+  border-left: none;
+  border-right: 3px solid;
+}
+[dir="rtl"] .option-feedback.correct-feedback { border-right-color: #22c55e; }
+[dir="rtl"] .option-feedback.incorrect-feedback { border-right-color: #fca5a5; }
+.feedback-status {
+  font-weight: 600;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.feedback-status.correct { color: #166534; }
+.feedback-status.incorrect { color: #991b1b; }
+.feedback-rationale { color: #444; }
+
+/* Hint box */
+.hint-box {
+  margin: 12px 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+}
+.hint-toggle {
+  width: 100%;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: #92400e;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hint-toggle:hover { background: #fef3c7; }
+.hint-content {
+  padding: 0 16px;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s, padding 0.3s;
+  font-size: 14px;
+  color: #78350f;
+  line-height: 1.5;
+}
+.hint-box.show .hint-content {
+  padding: 0 16px 12px;
+  max-height: 200px;
+}
+
+.next-btn {
+  margin-top: 20px; width: 100%; padding: 14px;
+  background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; border: none;
+  border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.next-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102,126,234,0.4); }
+.hidden { display: none !important; }
+.results { background: #fff; border-radius: 16px; padding: 40px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.15); display: none; }
+.results.active { display: block; }
+.results h2 { font-size: 28px; margin-bottom: 10px; color: #333; }
+.results .score { font-size: 64px; font-weight: 700; color: #667eea; margin: 20px 0; }
+.results .score-text { font-size: 18px; color: #666; margin-bottom: 30px; }
+.restart-btn {
+  padding: 14px 40px; background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer;
+}
+
+/* Math CSS */
+.math, .math-block { font-family: "Cambria Math", "Times New Roman", Times, serif; font-style: italic; }
+.math-block { display: block; text-align: center; margin: 10px 0; font-size: 110%; }
+.frac { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; margin: 0 3px; font-size: 0.9em; }
+.frac-num { border-bottom: 1px solid currentColor; padding: 0 4px 2px; line-height: 1.2; }
+.frac-den { padding: 2px 4px 0; line-height: 1.2; }
+.sqrt { white-space: nowrap; }
+.sqrt-content { border-top: 1px solid currentColor; padding: 0 3px; margin-left: 2px; }
+sup, sub { font-size: 0.75em; }
+sup { vertical-align: super; }
+sub { vertical-align: sub; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>Informática Cuestionario</h1>
+    <div class="meta">28 preguntas</div>
+    <div class="progress-bar"><div class="progress-fill"></div></div>
+  </div>
+  <div id="quiz-container">
+        <div class="question" data-index="0">
+          <div class="q-header">
+            <span class="q-number">Pregunta 1</span>
+            <span class="q-of">/ 28</span>
+          </div>
+          <div class="q-text">¿Cuál es la función principal de la combinación de teclas Ctrl + X en un sistema operativo?</div>
+          
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="Esta función se asocia habitualmente con otra combinación que mantiene el archivo original en su sitio.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Copiar el elemento seleccionado al portapapeles.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Esta función se asocia habitualmente con otra combinación que mantiene el archivo original en su sitio.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="true" data-rationale="Esta acción elimina el contenido de su posición actual para permitir su traslado posterior.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Quitar lo seleccionado y guardarlo para moverlo a otra ubicación.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Esta acción elimina el contenido de su posición actual para permitir su traslado posterior.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="Esta combinación no borra de forma definitiva, sino que prepara el objeto para ser pegado.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Eliminar permanentemente el archivo sin pasar por la papelera.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Esta combinación no borra de forma definitiva, sino que prepara el objeto para ser pegado.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="La función de reversión de errores utiliza una letra diferente al final del abecedario.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Deshacer la última acción realizada.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">La función de reversión de errores utiliza una letra diferente al final del abecedario.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="1">
+          <div class="q-header">
+            <span class="q-number">Pregunta 2</span>
+            <span class="q-of">/ 28</span>
+          </div>
+          <div class="q-text">Dentro de la evolución histórica, ¿quién es considerado el padre de la computación?</div>
+          
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="Aunque fue fundamental para la popularización de las computadoras personales en el siglo $XX$, no diseñó la máquina analítica original.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Steve Jobs</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Aunque fue fundamental para la popularización de las computadoras personales en el siglo <span class="math">XX</span>, no diseñó la máquina analítica original.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="true" data-rationale="Se le otorga este título por el diseño de la máquina analítica durante el siglo $XIX$.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Charles Babbage</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Se le otorga este título por el diseño de la máquina analítica durante el siglo <span class="math">XIX</span>.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="Es conocido por crear la Apple $I$, pero el concepto teórico fundamental es muy anterior.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Steve Wozniak</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Es conocido por crear la Apple <span class="math">I</span>, pero el concepto teórico fundamental es muy anterior.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Su aporte principal fue en el área de software y sistemas operativos para computadoras ya existentes.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Bill Gates</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Su aporte principal fue en el área de software y sistemas operativos para computadoras ya existentes.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="2">
+          <div class="q-header">
+            <span class="q-number">Pregunta 3</span>
+            <span class="q-of">/ 28</span>
+          </div>
+          <div class="q-text">¿Qué componente del hardware actúa como el 'cerebro' de la computadora procesando todas las instrucciones?</div>
+          
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="Este componente se encarga del almacenamiento temporal de datos, no de su procesamiento lógico central.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Memoria RAM</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Este componente se encarga del almacenamiento temporal de datos, no de su procesamiento lógico central.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="false" data-rationale="Funciona como la infraestructura de conexión, similar a un sistema nervioso, pero no es el núcleo de cálculo.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Tarjeta Madre</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Funciona como la infraestructura de conexión, similar a un sistema nervioso, pero no es el núcleo de cálculo.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="true" data-rationale="Es la unidad central encargada de realizar los cálculos y ejecutar las tareas de los programas.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">CPU (Procesador)</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Es la unidad central encargada de realizar los cálculos y ejecutar las tareas de los programas.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Su función es el almacenamiento a largo plazo, no la ejecución activa de instrucciones.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Disco Duro</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Su función es el almacenamiento a largo plazo, no la ejecución activa de instrucciones.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="3">
+          <div class="q-header">
+            <span class="q-number">Pregunta 4</span>
+            <span class="q-of">/ 28</span>
+          </div>
+          <div class="q-text">¿Cuál fue el principal avance tecnológico que definió a la segunda generación de computadoras (<span class="math">1956</span>-<span class="math">1963</span>)?</div>
+          
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="Esta tecnología pertenece a la primera generación y se caracterizaba por su gran tamaño y calor.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">El uso de tubos de vacío.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Esta tecnología pertenece a la primera generación y se caracterizaba por su gran tamaño y calor.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="false" data-rationale="Los microprocesadores integran miles de componentes en un chip y aparecieron en generaciones posteriores.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">La incorporación de microprocesadores.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Los microprocesadores integran miles de componentes en un chip y aparecieron en generaciones posteriores.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="true" data-rationale="Este cambio permitió que las máquinas fueran mucho más pequeñas, rápidas y eficientes.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">El reemplazo de tubos de vacío por transistores.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Este cambio permitió que las máquinas fueran mucho más pequeñas, rápidas y eficientes.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="La IA es la tecnología clave que define la quinta generación y el futuro de la computación.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">El desarrollo de la inteligencia artificial.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">La IA es la tecnología clave que define la quinta generación y el futuro de la computación.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="4">
+          <div class="q-header">
+            <span class="q-number">Pregunta 5</span>
+            <span class="q-of">/ 28</span>
+          </div>
+          <div class="q-text">¿Qué tipo de software incluye herramientas como navegadores web, juegos y editores de texto?</div>
+          
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="Este tipo de software se encarga de controlar el hardware y gestionar los recursos básicos del equipo.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Software de Sistema</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Este tipo de software se encarga de controlar el hardware y gestionar los recursos básicos del equipo.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="true" data-rationale="Son los programas diseñados específicamente para que el usuario realice tareas o actividades concretas.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Software de Aplicación</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Son los programas diseñados específicamente para que el usuario realice tareas o actividades concretas.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="Estas son herramientas utilizadas por desarrolladores para crear otros programas de software.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Software de Programación</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Estas son herramientas utilizadas por desarrolladores para crear otros programas de software.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="El hardware es físico por definición; los programas mencionados pertenecen a la categoría intangible.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Hardware lógico</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">El hardware es físico por definición; los programas mencionados pertenecen a la categoría intangible.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="5">
+          <div class="q-header">
+            <span class="q-number">Pregunta 6</span>
+            <span class="q-of">/ 28</span>
+          </div>
+          <div class="q-text">Si cierras accidentalmente una pestaña en tu navegador web, ¿qué combinación de teclas te permite recuperarla rápidamente?</div>
+          
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="Esta combinación abre una pestaña nueva en blanco, pero no recupera la anterior.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Ctrl + T</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Esta combinación abre una pestaña nueva en blanco, pero no recupera la anterior.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="true" data-rationale="Es el comando específico diseñado para reabrir la última pestaña cerrada por error.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Ctrl + Shift + T</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Es el comando específico diseñado para reabrir la última pestaña cerrada por error.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="Este atajo se utiliza para realizar búsquedas de palabras dentro de la página actual.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Ctrl + F</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Este atajo se utiliza para realizar búsquedas de palabras dentro de la página actual.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="En el contexto de la mayoría de aplicaciones, esto aplica formato de negrita al texto.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Ctrl + N</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">En el contexto de la mayoría de aplicaciones, esto aplica formato de negrita al texto.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="6">
+          <div class="q-header">
+            <span class="q-number">Pregunta 7</span>
+            <span class="q-of">/ 28</span>
+          </div>
+          <div class="q-text">¿Qué característica distingue a la memoria RAM del almacenamiento en disco duro?</div>
+          
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="La memoria RAM es volátil, lo que significa que pierde la información sin suministro eléctrico.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">La RAM guarda los archivos de forma permanente aunque se apague el equipo.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">La memoria RAM es volátil, lo que significa que pierde la información sin suministro eléctrico.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="true" data-rationale="Permite un acceso rápido a la información activa, mejorando la multitarea.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">La RAM almacena datos temporalmente para que la computadora los use mientras está encendida.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Permite un acceso rápido a la información activa, mejorando la multitarea.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="En términos de velocidad de procesamiento, la RAM es significativamente más veloz que el disco duro tradicional.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">El disco duro es mucho más rápido que la memoria RAM.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">En términos de velocidad de procesamiento, la RAM es significativamente más veloz que el disco duro tradicional.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Ambos son almacenamiento, pero uno es de corto plazo (volátil) y el otro de largo plazo (persistente).">
+            <span class="opt-label">D</span>
+            <span class="opt-text">No hay diferencia; ambos cumplen exactamente la misma función.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Ambos son almacenamiento, pero uno es de corto plazo (volátil) y el otro de largo plazo (persistente).</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="7">
+          <div class="q-header">
+            <span class="q-number">Pregunta 8</span>
+            <span class="q-of">/ 28</span>
+          </div>
+          <div class="q-text">¿Cuál fue la primera computadora electrónica de propósito general, que pesaba <span class="math">30</span> toneladas?</div>
+          
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="Esta máquina pertenece a la tercera generación y utilizaba circuitos integrados.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">IBM 360</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Esta máquina pertenece a la tercera generación y utilizaba circuitos integrados.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="false" data-rationale="Es conocida como la primera computadora personal exitosa, mucho más ligera y moderna.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Altair 8800</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Es conocida como la primera computadora personal exitosa, mucho más ligera y moderna.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="true" data-rationale="Lanzada en $1946$, utilizaba $18,000$ tubos de vacío y ocupaba habitaciones enteras.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">ENIAC</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Lanzada en <span class="math">1946</span>, utilizaba <span class="math">18,000</span> tubos de vacío y ocupaba habitaciones enteras.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Fue creada en $1976$ por Steve Wozniak, marcando el inicio de las microcomputadoras.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Apple I</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Fue creada en <span class="math">1976</span> por Steve Wozniak, marcando el inicio de las microcomputadoras.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="8">
+          <div class="q-header">
+            <span class="q-number">Pregunta 9</span>
+            <span class="q-of">/ 28</span>
+          </div>
+          <div class="q-text">¿Qué acción realiza la combinación de teclas Ctrl + E en un documento o carpeta?</div>
+          
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="Esta combinación no borra archivos, sino que los marca para realizar una acción posterior.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Eliminar todo el contenido seleccionado.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Esta combinación no borra archivos, sino que los marca para realizar una acción posterior.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="false" data-rationale="La exportación suele requerir menús específicos y no es un atajo universal de selección.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Exportar el archivo a un formato diferente.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">La exportación suele requerir menús específicos y no es un atajo universal de selección.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="true" data-rationale="Permite marcar rápidamente todos los archivos de una carpeta o todo el texto de un documento.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Seleccionar todo el contenido visible.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Permite marcar rápidamente todos los archivos de una carpeta o todo el texto de un documento.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Existen otras combinaciones para cerrar ventanas, pero este comando se enfoca en la selección masiva.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Cerrar la aplicación que se está ejecutando.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Existen otras combinaciones para cerrar ventanas, pero este comando se enfoca en la selección masiva.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="9">
+          <div class="q-header">
+            <span class="q-number">Pregunta 10</span>
+            <span class="q-of">/ 28</span>
+          </div>
+          <div class="q-text">En la tercera generación de computadoras (<span class="math">1964</span>-<span class="math">1971</span>), ¿cuál fue el componente clave que permitió la miniaturización?</div>
+          
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="Los tubos de vacío eran grandes y causaron el enorme tamaño de la primera generación.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Tubos de vacío</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Los tubos de vacío eran grandes y causaron el enorme tamaño de la primera generación.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="true" data-rationale="Permitieron integrar muchos componentes electrónicos en un espacio reducido sobre una pastilla de silicio.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Circuitos integrados (chips)</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Permitieron integrar muchos componentes electrónicos en un espacio reducido sobre una pastilla de silicio.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="Esta es una característica del software avanzado y la computación de quinta generación.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Inteligencia artificial</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Esta es una característica del software avanzado y la computación de quinta generación.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Eran un método antiguo de entrada de datos, no el componente de procesamiento central de esta etapa.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Tarjetas perforadas</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Eran un método antiguo de entrada de datos, no el componente de procesamiento central de esta etapa.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="10">
+          <div class="q-header">
+            <span class="q-number">Pregunta 11</span>
+            <span class="q-of">/ 28</span>
+          </div>
+          <div class="q-text">¿Cómo se llama el componente físico que convierte la electricidad de la pared en energía apta para la computadora?</div>
+          
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="Su función es procesar imágenes y video, no gestionar el suministro eléctrico general.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Tarjeta Gráfica (GPU)</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Su función es procesar imágenes y video, no gestionar el suministro eléctrico general.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="true" data-rationale="Es el encargado de transformar la corriente alterna en corriente continua para los componentes internos.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Fuente de Poder</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Es el encargado de transformar la corriente alterna en corriente continua para los componentes internos.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="Es el cerebro que procesa datos, pero requiere que otro componente le suministre la energía regulada.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Microprocesador</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Es el cerebro que procesa datos, pero requiere que otro componente le suministre la energía regulada.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Distribuye la energía, pero no realiza la conversión inicial desde el enchufe de pared.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Motherboard</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Distribuye la energía, pero no realiza la conversión inicial desde el enchufe de pared.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="11">
+          <div class="q-header">
+            <span class="q-number">Pregunta 12</span>
+            <span class="q-of">/ 28</span>
+          </div>
+          <div class="q-text">En un navegador web, ¿qué sucede al presionar Ctrl junto con la rueda del ratón?</div>
+          
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="El desplazamiento vertical es la función normal de la rueda sin presionar teclas adicionales.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Se desplaza la página hacia arriba o hacia abajo a gran velocidad.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">El desplazamiento vertical es la función normal de la rueda sin presionar teclas adicionales.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="true" data-rationale="Esta combinación modifica el tamaño visual de los elementos en la pantalla.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Se realiza un zoom para acercar o alejar el contenido.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Esta combinación modifica el tamaño visual de los elementos en la pantalla.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="El zoom es una función de visualización, no de gestión de pestañas del navegador.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Se cierran todas las pestañas abiertas automáticamente.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">El zoom es una función de visualización, no de gestión de pestañas del navegador.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Existen atajos de teclado para esto, pero la rueda con Ctrl se reserva para la escala visual.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Se cambia entre las diferentes pestañas abiertas.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Existen atajos de teclado para esto, pero la rueda con Ctrl se reserva para la escala visual.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="12">
+          <div class="q-header">
+            <span class="q-number">Pregunta 13</span>
+            <span class="q-of">/ 28</span>
+          </div>
+          <div class="q-text">¿Qué importante hito tecnológico ocurrió en el año <span class="math">1975</span> relacionado con la cuarta generación?</div>
+          
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="El ábaco es el instrumento de cálculo más antiguo de la humanidad, miles de años antes de $1975$.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Se inventó el ábaco para realizar cálculos.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">El ábaco es el instrumento de cálculo más antiguo de la humanidad, miles de años antes de <span class="math">1975</span>.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="true" data-rationale="Este evento inspiró a muchos innovadores y marcó el inicio real de la computación personal.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Se lanzó la Altair <span class="math">8800</span>, la primera PC comercialmente exitosa.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Este evento inspiró a muchos innovadores y marcó el inicio real de la computación personal.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="Los tubos de vacío fueron la tecnología dominante décadas antes, en los años $40$.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Se crearon los primeros tubos de vacío.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Los tubos de vacío fueron la tecnología dominante décadas antes, en los años <span class="math">40</span>.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="La IA sigue en desarrollo y es una visión de futuro y de la quinta generación.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">La inteligencia artificial superó al pensamiento humano.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">La IA sigue en desarrollo y es una visión de futuro y de la quinta generación.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="13">
+          <div class="q-header">
+            <span class="q-number">Pregunta 14</span>
+            <span class="q-of">/ 28</span>
+          </div>
+          <div class="q-text">Al trabajar con texto, ¿qué comando de teclado se utiliza para aplicar el formato de Cursiva?</div>
+          
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="En español, esta combinación se asocia con la 'Negrita' debido a su letra inicial.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Ctrl + N</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">En español, esta combinación se asocia con la 'Negrita' debido a su letra inicial.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="true" data-rationale="Es el atajo estándar para inclinar el texto en procesadores de texto en español.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Ctrl + K</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Es el atajo estándar para inclinar el texto en procesadores de texto en español.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="Esta función está vinculada a la salida del documento hacia una impresora.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Ctrl + P</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Esta función está vinculada a la salida del documento hacia una impresora.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Este comando sirve para duplicar el contenido al portapapeles, no para cambiar su formato visual.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Ctrl + C</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Este comando sirve para duplicar el contenido al portapapeles, no para cambiar su formato visual.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="14">
+          <div class="q-header">
+            <span class="q-number">Pregunta 15</span>
+            <span class="q-of">/ 28</span>
+          </div>
+          <div class="q-text">¿Qué componente de hardware se conoce como el 'sistema nervioso' de la computadora?</div>
+          
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="Su especialidad es el procesamiento de imágenes, no la interconexión general de todos los dispositivos.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">La Tarjeta Gráfica</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Su especialidad es el procesamiento de imágenes, no la interconexión general de todos los dispositivos.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="true" data-rationale="Es la placa base donde se conectan y comunican todos los componentes internos de la máquina.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">La Tarjeta Madre (Motherboard)</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Es la placa base donde se conectan y comunican todos los componentes internos de la máquina.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="Es un dispositivo de salida visual, no un medio de interconexión para los demás componentes internos.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">El Monitor</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Es un dispositivo de salida visual, no un medio de interconexión para los demás componentes internos.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Es un almacén de datos de alta velocidad, no la infraestructura de comunicación física.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">La Memoria RAM</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Es un almacén de datos de alta velocidad, no la infraestructura de comunicación física.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="15">
+          <div class="q-header">
+            <span class="q-number">Pregunta 16</span>
+            <span class="q-of">/ 28</span>
+          </div>
+          <div class="q-text">La quinta generación de computadoras se enfoca principalmente en:</div>
+          
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="La tendencia histórica es hacia la miniaturización y la portabilidad, no hacia el aumento de tamaño.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Hacer las computadoras más grandes y pesadas.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">La tendencia histórica es hacia la miniaturización y la portabilidad, no hacia el aumento de tamaño.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="false" data-rationale="El progreso se aleja de lo mecánico hacia lo digital y lo inteligente.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Sustituir el software por hardware mecánico.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">El progreso se aleja de lo mecánico hacia lo digital y lo inteligente.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="true" data-rationale="Busca que las máquinas aprendan, reconozcan la voz y tomen decisiones de forma autónoma.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">La Inteligencia Artificial y la interacción natural con el usuario.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Busca que las máquinas aprendan, reconozcan la voz y tomen decisiones de forma autónoma.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Los tubos de vacío son obsoletos debido a su ineficiencia y alto consumo energético.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Volver al uso de tubos de vacío por su fiabilidad.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Los tubos de vacío son obsoletos debido a su ineficiencia y alto consumo energético.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="16">
+          <div class="q-header">
+            <span class="q-number">Pregunta 17</span>
+            <span class="q-of">/ 28</span>
+          </div>
+          <div class="q-text">¿Cuál es la función del comando Ctrl + Z?</div>
+          
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="Existen menús de sistema para cerrar sesión; este atajo actúa sobre acciones en el software.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Cerrar la sesión de usuario.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Existen menús de sistema para cerrar sesión; este atajo actúa sobre acciones en el software.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="true" data-rationale="Es considerado el 'botón de pánico' para corregir errores cometidos durante el trabajo.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Deshacer la última acción realizada.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Es considerado el 'botón de pánico' para corregir errores cometidos durante el trabajo.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="El comando de guardado utiliza letras como G o S, dependiendo del idioma del software.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Guardar el archivo automáticamente.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">El comando de guardado utiliza letras como G o S, dependiendo del idioma del software.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Los controles de brillo suelen ser teclas de función o controles físicos del monitor.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Aumentar el brillo de la pantalla.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Los controles de brillo suelen ser teclas de función o controles físicos del monitor.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="17">
+          <div class="q-header">
+            <span class="q-number">Pregunta 18</span>
+            <span class="q-of">/ 28</span>
+          </div>
+          <div class="q-text">¿Qué dispositivo de hardware se encarga específicamente de procesar imágenes y video para el monitor?</div>
+          
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="El disco duro almacena los archivos de video, pero no realiza el trabajo de renderizado de imagen.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Disco Duro</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">El disco duro almacena los archivos de video, pero no realiza el trabajo de renderizado de imagen.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="true" data-rationale="Está diseñada para manejar los complejos cálculos matemáticos necesarios para mostrar gráficos.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Tarjeta Gráfica (GPU)</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Está diseñada para manejar los complejos cálculos matemáticos necesarios para mostrar gráficos.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="Es un dispositivo de entrada de datos, no tiene capacidad de procesamiento visual.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Teclado</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Es un dispositivo de entrada de datos, no tiene capacidad de procesamiento visual.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Provee energía a la tarjeta gráfica, pero no procesa los datos visuales en sí.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Fuente de Poder</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Provee energía a la tarjeta gráfica, pero no procesa los datos visuales en sí.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="18">
+          <div class="q-header">
+            <span class="q-number">Pregunta 19</span>
+            <span class="q-of">/ 28</span>
+          </div>
+          <div class="q-text">¿Qué comando de teclado utilizarías para buscar una palabra específica dentro de una página web?</div>
+          
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="true" data-rationale="Proviene de la palabra inglesa 'Find' y abre un cuadro de búsqueda en la mayoría de programas.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Ctrl + F</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Proviene de la palabra inglesa 'Find' y abre un cuadro de búsqueda en la mayoría de programas.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="false" data-rationale="Este atajo se usa para 'pegar' contenido que ya fue copiado previamente.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Ctrl + V</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Este atajo se usa para 'pegar' contenido que ya fue copiado previamente.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="Se asocia normalmente con la acción de guardar el progreso en un archivo local.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Ctrl + G</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Se asocia normalmente con la acción de guardar el progreso en un archivo local.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Crea una nueva pestaña, obligándote a empezar una navegación desde cero.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Ctrl + T</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Crea una nueva pestaña, obligándote a empezar una navegación desde cero.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="19">
+          <div class="q-header">
+            <span class="q-number">Pregunta 20</span>
+            <span class="q-of">/ 28</span>
+          </div>
+          <div class="q-text">Un ejemplo de Software de Programación mencionado en los materiales es:</div>
+          
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="Windows es un software de sistema (sistema operativo) que gestiona el hardware.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Windows</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Windows es un software de sistema (sistema operativo) que gestiona el hardware.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="true" data-rationale="Es un lenguaje utilizado por los creadores de software para escribir nuevas aplicaciones.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Python</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Es un lenguaje utilizado por los creadores de software para escribir nuevas aplicaciones.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="Es un software de aplicación destinado a la navegación por internet.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Google Chrome</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Es un software de aplicación destinado a la navegación por internet.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Pertenece a la categoría de software de aplicación para procesamiento de textos.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Microsoft Word</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Pertenece a la categoría de software de aplicación para procesamiento de textos.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="20">
+          <div class="q-header">
+            <span class="q-number">Pregunta 21</span>
+            <span class="q-of">/ 28</span>
+          </div>
+          <div class="q-text">¿A qué generación de computadoras pertenecen los equipos que utilizan microprocesadores y vieron el nacimiento de las PC?</div>
+          
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="La segunda generación usaba transistores individuales, no integrados en un único microprocesador.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Segunda Generación</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">La segunda generación usaba transistores individuales, no integrados en un único microprocesador.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="true" data-rationale="Esta etapa revolucionó la computación al integrar miles de transistores en un solo chip.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Cuarta Generación</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Esta etapa revolucionó la computación al integrar miles de transistores en un solo chip.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="En esta época las computadoras eran gigantescas y ocupaban habitaciones enteras con tubos de vacío.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Primera Generación</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">En esta época las computadoras eran gigantescas y ocupaban habitaciones enteras con tubos de vacío.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Aunque existieron máquinas mecánicas, la cuarta generación es puramente electrónica y digital.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Generación mecánica</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Aunque existieron máquinas mecánicas, la cuarta generación es puramente electrónica y digital.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="21">
+          <div class="q-header">
+            <span class="q-number">Pregunta 22</span>
+            <span class="q-of">/ 28</span>
+          </div>
+          <div class="q-text">Si deseas imprimir el documento que tienes abierto, el atajo más rápido es:</div>
+          
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="Aunque 'Imprimir' empieza con I, el atajo estándar universal usa la letra de la palabra en inglés.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Ctrl + I</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Aunque 'Imprimir' empieza con I, el atajo estándar universal usa la letra de la palabra en inglés.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="true" data-rationale="Viene de 'Print' y abre directamente el cuadro de diálogo de impresión.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Ctrl + P</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Viene de 'Print' y abre directamente el cuadro de diálogo de impresión.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="Este atajo guarda el archivo en el disco duro, pero no lo envía a la impresora.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Ctrl + S</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Este atajo guarda el archivo en el disco duro, pero no lo envía a la impresora.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Este comando cierra la ventana activa, lo que podría hacerte perder tu trabajo si no guardaste.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Alt + F4</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Este comando cierra la ventana activa, lo que podría hacerte perder tu trabajo si no guardaste.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="22">
+          <div class="q-header">
+            <span class="q-number">Pregunta 23</span>
+            <span class="q-of">/ 28</span>
+          </div>
+          <div class="q-text">¿Cuál es la función del comando Ctrl + Alt + Supr en sistemas modernos?</div>
+          
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="No borra datos, sino que permite gestionar el estado del sistema o las sesiones.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Reiniciar el equipo borrando todos los datos.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">No borra datos, sino que permite gestionar el estado del sistema o las sesiones.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="true" data-rationale="Es una combinación de seguridad para gestionar procesos bloqueados o cerrar sesión.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Acceder al Administrador de tareas o bloquear el equipo.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Es una combinación de seguridad para gestionar procesos bloqueados o cerrar sesión.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="La velocidad del procesador depende del hardware y la configuración, no de un atajo de teclas.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Aumentar la velocidad del procesador instantáneamente.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">La velocidad del procesador depende del hardware y la configuración, no de un atajo de teclas.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Este cambio suele hacerse con otras combinaciones como Alt + Shift o desde la barra de tareas.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Cambiar el idioma del teclado.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Este cambio suele hacerse con otras combinaciones como Alt + Shift o desde la barra de tareas.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="23">
+          <div class="q-header">
+            <span class="q-number">Pregunta 24</span>
+            <span class="q-of">/ 28</span>
+          </div>
+          <div class="q-text">¿Cómo se clasifican los dispositivos como el monitor, según el flujo de información?</div>
+          
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="Los dispositivos de entrada envían información hacia la computadora, no hacia afuera.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Dispositivo de Entrada</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Los dispositivos de entrada envían información hacia la computadora, no hacia afuera.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="true" data-rationale="Muestra la información visual procesada por la computadora hacia el usuario.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Dispositivo de Salida</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Muestra la información visual procesada por la computadora hacia el usuario.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="El procesamiento ocurre internamente en el CPU, el monitor solo muestra el resultado.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Hardware de procesamiento</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">El procesamiento ocurre internamente en el CPU, el monitor solo muestra el resultado.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="El monitor es un objeto físico tangible, por lo tanto es hardware, no software.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Software visual</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">El monitor es un objeto físico tangible, por lo tanto es hardware, no software.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="24">
+          <div class="q-header">
+            <span class="q-number">Pregunta 25</span>
+            <span class="q-of">/ 28</span>
+          </div>
+          <div class="q-text">¿Qué comando se usa habitualmente para 'Guardar' un archivo en aplicaciones configuradas en inglés?</div>
+          
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="Este es el comando para 'Guardar' en versiones de software en español.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Ctrl + G</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Este es el comando para 'Guardar' en versiones de software en español.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="true" data-rationale="Viene de 'Save' y es el estándar en la mayoría de los programas internacionales.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Ctrl + S</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Viene de 'Save' y es el estándar en la mayoría de los programas internacionales.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="Se utiliza para insertar contenido copiado, no para persistir datos en el disco.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Ctrl + V</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Se utiliza para insertar contenido copiado, no para persistir datos en el disco.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Esta combinación suele abrir el menú de inicio en Windows, no guarda documentos.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Ctrl + Esc</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Esta combinación suele abrir el menú de inicio en Windows, no guarda documentos.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="25">
+          <div class="q-header">
+            <span class="q-number">Pregunta 26</span>
+            <span class="q-of">/ 28</span>
+          </div>
+          <div class="q-text">¿Cuál es la principal diferencia entre Hardware y Software?</div>
+          
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="Es exactamente al revés: las piezas físicas son hardware y las instrucciones son software.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">El hardware son programas y el software son piezas de metal.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Es exactamente al revés: las piezas físicas son hardware y las instrucciones son software.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="true" data-rationale="Esta es la distinción fundamental entre los componentes tangibles e intangibles.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">El hardware es la parte física que puedes tocar y el software son los programas e instrucciones.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Esta es la distinción fundamental entre los componentes tangibles e intangibles.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="Son dos categorías distintas que deben trabajar juntas para que el equipo funcione.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">No hay diferencia real, son nombres distintos para lo mismo.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Son dos categorías distintas que deben trabajar juntas para que el equipo funcione.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Ambos trabajan simultáneamente en todo momento para que la computadora sea útil.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">El hardware solo funciona de noche y el software de día.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Ambos trabajan simultáneamente en todo momento para que la computadora sea útil.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="26">
+          <div class="q-header">
+            <span class="q-number">Pregunta 27</span>
+            <span class="q-of">/ 28</span>
+          </div>
+          <div class="q-text">¿Qué instrumento mecánico es reconocido como el primero utilizado por el ser humano para realizar cálculos?</div>
+          
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="Fue un diseño avanzado del siglo $XIX$, mucho después de los primeros instrumentos simples.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">La Máquina Analítica</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Fue un diseño avanzado del siglo <span class="math">XIX</span>, mucho después de los primeros instrumentos simples.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="true" data-rationale="Es una herramienta milenaria que utiliza cuentas móviles para operaciones matemáticas básicas.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">El Ábaco</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Es una herramienta milenaria que utiliza cuentas móviles para operaciones matemáticas básicas.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="Aunque fue una calculadora mecánica temprana, no fue la primera herramienta de la humanidad.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">La Pascalina</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Aunque fue una calculadora mecánica temprana, no fue la primera herramienta de la humanidad.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Estos son dispositivos electrónicos modernos que aparecieron miles de años después que el primer instrumento.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">La calculadora de bolsillo</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Estos son dispositivos electrónicos modernos que aparecieron miles de años después que el primer instrumento.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="27">
+          <div class="q-header">
+            <span class="q-number">Pregunta 28</span>
+            <span class="q-of">/ 28</span>
+          </div>
+          <div class="q-text">En la evolución de las computadoras, ¿qué permitió pasar de máquinas que ocupaban habitaciones a dispositivos que caben en un bolsillo?</div>
+          
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="El costo ha bajado con el tiempo, pero lo que redujo el tamaño fue el avance tecnológico, no el precio.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">El aumento del precio de los componentes.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">El costo ha bajado con el tiempo, pero lo que redujo el tamaño fue el avance tecnológico, no el precio.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="true" data-rationale="Integrar más potencia en espacios cada vez más reducidos permitió la portabilidad actual.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">La miniaturización de componentes como transistores y circuitos integrados.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Integrar más potencia en espacios cada vez más reducidos permitió la portabilidad actual.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="Al contrario, el calor es un enemigo de la eficiencia y las máquinas modernas buscan generar menos.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">El descubrimiento de que el calor ayuda a procesar más rápido.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Al contrario, el calor es un enemigo de la eficiencia y las máquinas modernas buscan generar menos.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="El software se ha vuelto más complejo y necesario con cada nueva generación.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">La eliminación del software de sistema.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">El software se ha vuelto más complejo y necesario con cada nueva generación.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      </div>
+  <div class="results" id="results">
+    <h2>¡Cuestionario completado!</h2>
+    <div class="score" id="score">0%</div>
+    <div class="score-text" id="score-text"></div>
+    <button class="restart-btn" onclick="restart()">Intentar de nuevo</button>
+  </div>
+</div>
+<script>
+const quizData = [{"question":"¿Cuál es la función principal de la combinación de teclas Ctrl + X en un sistema operativo?","hint":"","options":[{"label":"A","text":"Copiar el elemento seleccionado al portapapeles.","isCorrect":false,"rationale":"Esta función se asocia habitualmente con otra combinación que mantiene el archivo original en su sitio."},{"label":"B","text":"Quitar lo seleccionado y guardarlo para moverlo a otra ubicación.","isCorrect":true,"rationale":"Esta acción elimina el contenido de su posición actual para permitir su traslado posterior."},{"label":"C","text":"Eliminar permanentemente el archivo sin pasar por la papelera.","isCorrect":false,"rationale":"Esta combinación no borra de forma definitiva, sino que prepara el objeto para ser pegado."},{"label":"D","text":"Deshacer la última acción realizada.","isCorrect":false,"rationale":"La función de reversión de errores utiliza una letra diferente al final del abecedario."}]},{"question":"Dentro de la evolución histórica, ¿quién es considerado el padre de la computación?","hint":"","options":[{"label":"A","text":"Steve Jobs","isCorrect":false,"rationale":"Aunque fue fundamental para la popularización de las computadoras personales en el siglo $XX$, no diseñó la máquina analítica original."},{"label":"B","text":"Charles Babbage","isCorrect":true,"rationale":"Se le otorga este título por el diseño de la máquina analítica durante el siglo $XIX$."},{"label":"C","text":"Steve Wozniak","isCorrect":false,"rationale":"Es conocido por crear la Apple $I$, pero el concepto teórico fundamental es muy anterior."},{"label":"D","text":"Bill Gates","isCorrect":false,"rationale":"Su aporte principal fue en el área de software y sistemas operativos para computadoras ya existentes."}]},{"question":"¿Qué componente del hardware actúa como el 'cerebro' de la computadora procesando todas las instrucciones?","hint":"","options":[{"label":"A","text":"Memoria RAM","isCorrect":false,"rationale":"Este componente se encarga del almacenamiento temporal de datos, no de su procesamiento lógico central."},{"label":"B","text":"Tarjeta Madre","isCorrect":false,"rationale":"Funciona como la infraestructura de conexión, similar a un sistema nervioso, pero no es el núcleo de cálculo."},{"label":"C","text":"CPU (Procesador)","isCorrect":true,"rationale":"Es la unidad central encargada de realizar los cálculos y ejecutar las tareas de los programas."},{"label":"D","text":"Disco Duro","isCorrect":false,"rationale":"Su función es el almacenamiento a largo plazo, no la ejecución activa de instrucciones."}]},{"question":"¿Cuál fue el principal avance tecnológico que definió a la segunda generación de computadoras ($1956$-$1963$)?","hint":"","options":[{"label":"A","text":"El uso de tubos de vacío.","isCorrect":false,"rationale":"Esta tecnología pertenece a la primera generación y se caracterizaba por su gran tamaño y calor."},{"label":"B","text":"La incorporación de microprocesadores.","isCorrect":false,"rationale":"Los microprocesadores integran miles de componentes en un chip y aparecieron en generaciones posteriores."},{"label":"C","text":"El reemplazo de tubos de vacío por transistores.","isCorrect":true,"rationale":"Este cambio permitió que las máquinas fueran mucho más pequeñas, rápidas y eficientes."},{"label":"D","text":"El desarrollo de la inteligencia artificial.","isCorrect":false,"rationale":"La IA es la tecnología clave que define la quinta generación y el futuro de la computación."}]},{"question":"¿Qué tipo de software incluye herramientas como navegadores web, juegos y editores de texto?","hint":"","options":[{"label":"A","text":"Software de Sistema","isCorrect":false,"rationale":"Este tipo de software se encarga de controlar el hardware y gestionar los recursos básicos del equipo."},{"label":"B","text":"Software de Aplicación","isCorrect":true,"rationale":"Son los programas diseñados específicamente para que el usuario realice tareas o actividades concretas."},{"label":"C","text":"Software de Programación","isCorrect":false,"rationale":"Estas son herramientas utilizadas por desarrolladores para crear otros programas de software."},{"label":"D","text":"Hardware lógico","isCorrect":false,"rationale":"El hardware es físico por definición; los programas mencionados pertenecen a la categoría intangible."}]},{"question":"Si cierras accidentalmente una pestaña en tu navegador web, ¿qué combinación de teclas te permite recuperarla rápidamente?","hint":"","options":[{"label":"A","text":"Ctrl + T","isCorrect":false,"rationale":"Esta combinación abre una pestaña nueva en blanco, pero no recupera la anterior."},{"label":"B","text":"Ctrl + Shift + T","isCorrect":true,"rationale":"Es el comando específico diseñado para reabrir la última pestaña cerrada por error."},{"label":"C","text":"Ctrl + F","isCorrect":false,"rationale":"Este atajo se utiliza para realizar búsquedas de palabras dentro de la página actual."},{"label":"D","text":"Ctrl + N","isCorrect":false,"rationale":"En el contexto de la mayoría de aplicaciones, esto aplica formato de negrita al texto."}]},{"question":"¿Qué característica distingue a la memoria RAM del almacenamiento en disco duro?","hint":"","options":[{"label":"A","text":"La RAM guarda los archivos de forma permanente aunque se apague el equipo.","isCorrect":false,"rationale":"La memoria RAM es volátil, lo que significa que pierde la información sin suministro eléctrico."},{"label":"B","text":"La RAM almacena datos temporalmente para que la computadora los use mientras está encendida.","isCorrect":true,"rationale":"Permite un acceso rápido a la información activa, mejorando la multitarea."},{"label":"C","text":"El disco duro es mucho más rápido que la memoria RAM.","isCorrect":false,"rationale":"En términos de velocidad de procesamiento, la RAM es significativamente más veloz que el disco duro tradicional."},{"label":"D","text":"No hay diferencia; ambos cumplen exactamente la misma función.","isCorrect":false,"rationale":"Ambos son almacenamiento, pero uno es de corto plazo (volátil) y el otro de largo plazo (persistente)."}]},{"question":"¿Cuál fue la primera computadora electrónica de propósito general, que pesaba $30$ toneladas?","hint":"","options":[{"label":"A","text":"IBM 360","isCorrect":false,"rationale":"Esta máquina pertenece a la tercera generación y utilizaba circuitos integrados."},{"label":"B","text":"Altair 8800","isCorrect":false,"rationale":"Es conocida como la primera computadora personal exitosa, mucho más ligera y moderna."},{"label":"C","text":"ENIAC","isCorrect":true,"rationale":"Lanzada en $1946$, utilizaba $18,000$ tubos de vacío y ocupaba habitaciones enteras."},{"label":"D","text":"Apple I","isCorrect":false,"rationale":"Fue creada en $1976$ por Steve Wozniak, marcando el inicio de las microcomputadoras."}]},{"question":"¿Qué acción realiza la combinación de teclas Ctrl + E en un documento o carpeta?","hint":"","options":[{"label":"A","text":"Eliminar todo el contenido seleccionado.","isCorrect":false,"rationale":"Esta combinación no borra archivos, sino que los marca para realizar una acción posterior."},{"label":"B","text":"Exportar el archivo a un formato diferente.","isCorrect":false,"rationale":"La exportación suele requerir menús específicos y no es un atajo universal de selección."},{"label":"C","text":"Seleccionar todo el contenido visible.","isCorrect":true,"rationale":"Permite marcar rápidamente todos los archivos de una carpeta o todo el texto de un documento."},{"label":"D","text":"Cerrar la aplicación que se está ejecutando.","isCorrect":false,"rationale":"Existen otras combinaciones para cerrar ventanas, pero este comando se enfoca en la selección masiva."}]},{"question":"En la tercera generación de computadoras ($1964$-$1971$), ¿cuál fue el componente clave que permitió la miniaturización?","hint":"","options":[{"label":"A","text":"Tubos de vacío","isCorrect":false,"rationale":"Los tubos de vacío eran grandes y causaron el enorme tamaño de la primera generación."},{"label":"B","text":"Circuitos integrados (chips)","isCorrect":true,"rationale":"Permitieron integrar muchos componentes electrónicos en un espacio reducido sobre una pastilla de silicio."},{"label":"C","text":"Inteligencia artificial","isCorrect":false,"rationale":"Esta es una característica del software avanzado y la computación de quinta generación."},{"label":"D","text":"Tarjetas perforadas","isCorrect":false,"rationale":"Eran un método antiguo de entrada de datos, no el componente de procesamiento central de esta etapa."}]},{"question":"¿Cómo se llama el componente físico que convierte la electricidad de la pared en energía apta para la computadora?","hint":"","options":[{"label":"A","text":"Tarjeta Gráfica (GPU)","isCorrect":false,"rationale":"Su función es procesar imágenes y video, no gestionar el suministro eléctrico general."},{"label":"B","text":"Fuente de Poder","isCorrect":true,"rationale":"Es el encargado de transformar la corriente alterna en corriente continua para los componentes internos."},{"label":"C","text":"Microprocesador","isCorrect":false,"rationale":"Es el cerebro que procesa datos, pero requiere que otro componente le suministre la energía regulada."},{"label":"D","text":"Motherboard","isCorrect":false,"rationale":"Distribuye la energía, pero no realiza la conversión inicial desde el enchufe de pared."}]},{"question":"En un navegador web, ¿qué sucede al presionar Ctrl junto con la rueda del ratón?","hint":"","options":[{"label":"A","text":"Se desplaza la página hacia arriba o hacia abajo a gran velocidad.","isCorrect":false,"rationale":"El desplazamiento vertical es la función normal de la rueda sin presionar teclas adicionales."},{"label":"B","text":"Se realiza un zoom para acercar o alejar el contenido.","isCorrect":true,"rationale":"Esta combinación modifica el tamaño visual de los elementos en la pantalla."},{"label":"C","text":"Se cierran todas las pestañas abiertas automáticamente.","isCorrect":false,"rationale":"El zoom es una función de visualización, no de gestión de pestañas del navegador."},{"label":"D","text":"Se cambia entre las diferentes pestañas abiertas.","isCorrect":false,"rationale":"Existen atajos de teclado para esto, pero la rueda con Ctrl se reserva para la escala visual."}]},{"question":"¿Qué importante hito tecnológico ocurrió en el año $1975$ relacionado con la cuarta generación?","hint":"","options":[{"label":"A","text":"Se inventó el ábaco para realizar cálculos.","isCorrect":false,"rationale":"El ábaco es el instrumento de cálculo más antiguo de la humanidad, miles de años antes de $1975$."},{"label":"B","text":"Se lanzó la Altair $8800$, la primera PC comercialmente exitosa.","isCorrect":true,"rationale":"Este evento inspiró a muchos innovadores y marcó el inicio real de la computación personal."},{"label":"C","text":"Se crearon los primeros tubos de vacío.","isCorrect":false,"rationale":"Los tubos de vacío fueron la tecnología dominante décadas antes, en los años $40$."},{"label":"D","text":"La inteligencia artificial superó al pensamiento humano.","isCorrect":false,"rationale":"La IA sigue en desarrollo y es una visión de futuro y de la quinta generación."}]},{"question":"Al trabajar con texto, ¿qué comando de teclado se utiliza para aplicar el formato de Cursiva?","hint":"","options":[{"label":"A","text":"Ctrl + N","isCorrect":false,"rationale":"En español, esta combinación se asocia con la 'Negrita' debido a su letra inicial."},{"label":"B","text":"Ctrl + K","isCorrect":true,"rationale":"Es el atajo estándar para inclinar el texto en procesadores de texto en español."},{"label":"C","text":"Ctrl + P","isCorrect":false,"rationale":"Esta función está vinculada a la salida del documento hacia una impresora."},{"label":"D","text":"Ctrl + C","isCorrect":false,"rationale":"Este comando sirve para duplicar el contenido al portapapeles, no para cambiar su formato visual."}]},{"question":"¿Qué componente de hardware se conoce como el 'sistema nervioso' de la computadora?","hint":"","options":[{"label":"A","text":"La Tarjeta Gráfica","isCorrect":false,"rationale":"Su especialidad es el procesamiento de imágenes, no la interconexión general de todos los dispositivos."},{"label":"B","text":"La Tarjeta Madre (Motherboard)","isCorrect":true,"rationale":"Es la placa base donde se conectan y comunican todos los componentes internos de la máquina."},{"label":"C","text":"El Monitor","isCorrect":false,"rationale":"Es un dispositivo de salida visual, no un medio de interconexión para los demás componentes internos."},{"label":"D","text":"La Memoria RAM","isCorrect":false,"rationale":"Es un almacén de datos de alta velocidad, no la infraestructura de comunicación física."}]},{"question":"La quinta generación de computadoras se enfoca principalmente en:","hint":"","options":[{"label":"A","text":"Hacer las computadoras más grandes y pesadas.","isCorrect":false,"rationale":"La tendencia histórica es hacia la miniaturización y la portabilidad, no hacia el aumento de tamaño."},{"label":"B","text":"Sustituir el software por hardware mecánico.","isCorrect":false,"rationale":"El progreso se aleja de lo mecánico hacia lo digital y lo inteligente."},{"label":"C","text":"La Inteligencia Artificial y la interacción natural con el usuario.","isCorrect":true,"rationale":"Busca que las máquinas aprendan, reconozcan la voz y tomen decisiones de forma autónoma."},{"label":"D","text":"Volver al uso de tubos de vacío por su fiabilidad.","isCorrect":false,"rationale":"Los tubos de vacío son obsoletos debido a su ineficiencia y alto consumo energético."}]},{"question":"¿Cuál es la función del comando Ctrl + Z?","hint":"","options":[{"label":"A","text":"Cerrar la sesión de usuario.","isCorrect":false,"rationale":"Existen menús de sistema para cerrar sesión; este atajo actúa sobre acciones en el software."},{"label":"B","text":"Deshacer la última acción realizada.","isCorrect":true,"rationale":"Es considerado el 'botón de pánico' para corregir errores cometidos durante el trabajo."},{"label":"C","text":"Guardar el archivo automáticamente.","isCorrect":false,"rationale":"El comando de guardado utiliza letras como G o S, dependiendo del idioma del software."},{"label":"D","text":"Aumentar el brillo de la pantalla.","isCorrect":false,"rationale":"Los controles de brillo suelen ser teclas de función o controles físicos del monitor."}]},{"question":"¿Qué dispositivo de hardware se encarga específicamente de procesar imágenes y video para el monitor?","hint":"","options":[{"label":"A","text":"Disco Duro","isCorrect":false,"rationale":"El disco duro almacena los archivos de video, pero no realiza el trabajo de renderizado de imagen."},{"label":"B","text":"Tarjeta Gráfica (GPU)","isCorrect":true,"rationale":"Está diseñada para manejar los complejos cálculos matemáticos necesarios para mostrar gráficos."},{"label":"C","text":"Teclado","isCorrect":false,"rationale":"Es un dispositivo de entrada de datos, no tiene capacidad de procesamiento visual."},{"label":"D","text":"Fuente de Poder","isCorrect":false,"rationale":"Provee energía a la tarjeta gráfica, pero no procesa los datos visuales en sí."}]},{"question":"¿Qué comando de teclado utilizarías para buscar una palabra específica dentro de una página web?","hint":"","options":[{"label":"A","text":"Ctrl + F","isCorrect":true,"rationale":"Proviene de la palabra inglesa 'Find' y abre un cuadro de búsqueda en la mayoría de programas."},{"label":"B","text":"Ctrl + V","isCorrect":false,"rationale":"Este atajo se usa para 'pegar' contenido que ya fue copiado previamente."},{"label":"C","text":"Ctrl + G","isCorrect":false,"rationale":"Se asocia normalmente con la acción de guardar el progreso en un archivo local."},{"label":"D","text":"Ctrl + T","isCorrect":false,"rationale":"Crea una nueva pestaña, obligándote a empezar una navegación desde cero."}]},{"question":"Un ejemplo de Software de Programación mencionado en los materiales es:","hint":"","options":[{"label":"A","text":"Windows","isCorrect":false,"rationale":"Windows es un software de sistema (sistema operativo) que gestiona el hardware."},{"label":"B","text":"Python","isCorrect":true,"rationale":"Es un lenguaje utilizado por los creadores de software para escribir nuevas aplicaciones."},{"label":"C","text":"Google Chrome","isCorrect":false,"rationale":"Es un software de aplicación destinado a la navegación por internet."},{"label":"D","text":"Microsoft Word","isCorrect":false,"rationale":"Pertenece a la categoría de software de aplicación para procesamiento de textos."}]},{"question":"¿A qué generación de computadoras pertenecen los equipos que utilizan microprocesadores y vieron el nacimiento de las PC?","hint":"","options":[{"label":"A","text":"Segunda Generación","isCorrect":false,"rationale":"La segunda generación usaba transistores individuales, no integrados en un único microprocesador."},{"label":"B","text":"Cuarta Generación","isCorrect":true,"rationale":"Esta etapa revolucionó la computación al integrar miles de transistores en un solo chip."},{"label":"C","text":"Primera Generación","isCorrect":false,"rationale":"En esta época las computadoras eran gigantescas y ocupaban habitaciones enteras con tubos de vacío."},{"label":"D","text":"Generación mecánica","isCorrect":false,"rationale":"Aunque existieron máquinas mecánicas, la cuarta generación es puramente electrónica y digital."}]},{"question":"Si deseas imprimir el documento que tienes abierto, el atajo más rápido es:","hint":"","options":[{"label":"A","text":"Ctrl + I","isCorrect":false,"rationale":"Aunque 'Imprimir' empieza con I, el atajo estándar universal usa la letra de la palabra en inglés."},{"label":"B","text":"Ctrl + P","isCorrect":true,"rationale":"Viene de 'Print' y abre directamente el cuadro de diálogo de impresión."},{"label":"C","text":"Ctrl + S","isCorrect":false,"rationale":"Este atajo guarda el archivo en el disco duro, pero no lo envía a la impresora."},{"label":"D","text":"Alt + F4","isCorrect":false,"rationale":"Este comando cierra la ventana activa, lo que podría hacerte perder tu trabajo si no guardaste."}]},{"question":"¿Cuál es la función del comando Ctrl + Alt + Supr en sistemas modernos?","hint":"","options":[{"label":"A","text":"Reiniciar el equipo borrando todos los datos.","isCorrect":false,"rationale":"No borra datos, sino que permite gestionar el estado del sistema o las sesiones."},{"label":"B","text":"Acceder al Administrador de tareas o bloquear el equipo.","isCorrect":true,"rationale":"Es una combinación de seguridad para gestionar procesos bloqueados o cerrar sesión."},{"label":"C","text":"Aumentar la velocidad del procesador instantáneamente.","isCorrect":false,"rationale":"La velocidad del procesador depende del hardware y la configuración, no de un atajo de teclas."},{"label":"D","text":"Cambiar el idioma del teclado.","isCorrect":false,"rationale":"Este cambio suele hacerse con otras combinaciones como Alt + Shift o desde la barra de tareas."}]},{"question":"¿Cómo se clasifican los dispositivos como el monitor, según el flujo de información?","hint":"","options":[{"label":"A","text":"Dispositivo de Entrada","isCorrect":false,"rationale":"Los dispositivos de entrada envían información hacia la computadora, no hacia afuera."},{"label":"B","text":"Dispositivo de Salida","isCorrect":true,"rationale":"Muestra la información visual procesada por la computadora hacia el usuario."},{"label":"C","text":"Hardware de procesamiento","isCorrect":false,"rationale":"El procesamiento ocurre internamente en el CPU, el monitor solo muestra el resultado."},{"label":"D","text":"Software visual","isCorrect":false,"rationale":"El monitor es un objeto físico tangible, por lo tanto es hardware, no software."}]},{"question":"¿Qué comando se usa habitualmente para 'Guardar' un archivo en aplicaciones configuradas en inglés?","hint":"","options":[{"label":"A","text":"Ctrl + G","isCorrect":false,"rationale":"Este es el comando para 'Guardar' en versiones de software en español."},{"label":"B","text":"Ctrl + S","isCorrect":true,"rationale":"Viene de 'Save' y es el estándar en la mayoría de los programas internacionales."},{"label":"C","text":"Ctrl + V","isCorrect":false,"rationale":"Se utiliza para insertar contenido copiado, no para persistir datos en el disco."},{"label":"D","text":"Ctrl + Esc","isCorrect":false,"rationale":"Esta combinación suele abrir el menú de inicio en Windows, no guarda documentos."}]},{"question":"¿Cuál es la principal diferencia entre Hardware y Software?","hint":"","options":[{"label":"A","text":"El hardware son programas y el software son piezas de metal.","isCorrect":false,"rationale":"Es exactamente al revés: las piezas físicas son hardware y las instrucciones son software."},{"label":"B","text":"El hardware es la parte física que puedes tocar y el software son los programas e instrucciones.","isCorrect":true,"rationale":"Esta es la distinción fundamental entre los componentes tangibles e intangibles."},{"label":"C","text":"No hay diferencia real, son nombres distintos para lo mismo.","isCorrect":false,"rationale":"Son dos categorías distintas que deben trabajar juntas para que el equipo funcione."},{"label":"D","text":"El hardware solo funciona de noche y el software de día.","isCorrect":false,"rationale":"Ambos trabajan simultáneamente en todo momento para que la computadora sea útil."}]},{"question":"¿Qué instrumento mecánico es reconocido como el primero utilizado por el ser humano para realizar cálculos?","hint":"","options":[{"label":"A","text":"La Máquina Analítica","isCorrect":false,"rationale":"Fue un diseño avanzado del siglo $XIX$, mucho después de los primeros instrumentos simples."},{"label":"B","text":"El Ábaco","isCorrect":true,"rationale":"Es una herramienta milenaria que utiliza cuentas móviles para operaciones matemáticas básicas."},{"label":"C","text":"La Pascalina","isCorrect":false,"rationale":"Aunque fue una calculadora mecánica temprana, no fue la primera herramienta de la humanidad."},{"label":"D","text":"La calculadora de bolsillo","isCorrect":false,"rationale":"Estos son dispositivos electrónicos modernos que aparecieron miles de años después que el primer instrumento."}]},{"question":"En la evolución de las computadoras, ¿qué permitió pasar de máquinas que ocupaban habitaciones a dispositivos que caben en un bolsillo?","hint":"","options":[{"label":"A","text":"El aumento del precio de los componentes.","isCorrect":false,"rationale":"El costo ha bajado con el tiempo, pero lo que redujo el tamaño fue el avance tecnológico, no el precio."},{"label":"B","text":"La miniaturización de componentes como transistores y circuitos integrados.","isCorrect":true,"rationale":"Integrar más potencia en espacios cada vez más reducidos permitió la portabilidad actual."},{"label":"C","text":"El descubrimiento de que el calor ayuda a procesar más rápido.","isCorrect":false,"rationale":"Al contrario, el calor es un enemigo de la eficiencia y las máquinas modernas buscan generar menos."},{"label":"D","text":"La eliminación del software de sistema.","isCorrect":false,"rationale":"El software se ha vuelto más complejo y necesario con cada nueva generación."}]}];
+const tr = {"correct":"¡Correcto!","incorrect":"Incorrecto","next":"Siguiente pregunta →","seeResults":"Ver resultados","complete":"¡Cuestionario completado!","scoreText":"Obtuviste {correct} de {total} correctas","tryAgain":"Intentar de nuevo","rightAnswer":"Respuesta correcta","notQuite":"No del todo"};
+let currentQ = 0, correctCount = 0, answered = false;
+
+function init() {
+  document.querySelectorAll('.question').forEach((q, i) => q.classList.toggle('active', i === 0));
+  updateProgress();
+  document.querySelectorAll('.option').forEach(opt => opt.addEventListener('click', () => selectOption(opt)));
+  document.querySelectorAll('.next-btn').forEach(btn => btn.addEventListener('click', nextQuestion));
+}
+
+function selectOption(opt) {
+  if (answered) return;
+  answered = true;
+  const q = opt.closest('.question');
+  const options = q.querySelectorAll('.option');
+  const nextBtn = q.querySelector('.next-btn');
+  const isCorrect = opt.dataset.correct === 'true';
+  
+  // Mark all options as disabled
+  options.forEach(o => o.classList.add('disabled'));
+  
+  // Style selected option
+  opt.classList.add('selected', isCorrect ? 'correct' : 'incorrect');
+  
+  // Show correct answer if wrong
+  if (!isCorrect) {
+    const correctOpt = [...options].find(o => o.dataset.correct === 'true');
+    if (correctOpt) correctOpt.classList.add('show-correct');
+  }
+  
+  if (isCorrect) correctCount++;
+  
+  // Show feedback for ALL options that have rationale
+  options.forEach(o => {
+    const wrapper = o.closest('.option-wrapper');
+    const feedback = wrapper.querySelector('.option-feedback');
+    const rationale = o.dataset.rationale;
+    const isThisCorrect = o.dataset.correct === 'true';
+    
+    if (rationale && rationale.trim()) {
+      feedback.classList.remove('hidden');
+      feedback.classList.add(isThisCorrect ? 'correct-feedback' : 'incorrect-feedback');
+      
+      const statusEl = feedback.querySelector('.feedback-status');
+      statusEl.className = 'feedback-status ' + (isThisCorrect ? 'correct' : 'incorrect');
+      statusEl.innerHTML = isThisCorrect 
+        ? '✓ ' + tr.rightAnswer
+        : '✗ ' + tr.notQuite;
+    }
+  });
+  
+  nextBtn.classList.remove('hidden');
+  if (currentQ === quizData.length - 1) nextBtn.textContent = tr.seeResults;
+}
+
+function nextQuestion() {
+  answered = false;
+  currentQ++;
+  if (currentQ >= quizData.length) { showResults(); return; }
+  document.querySelectorAll('.question').forEach((q, i) => q.classList.toggle('active', i === currentQ));
+  updateProgress();
+}
+
+function updateProgress() {
+  document.querySelector('.progress-fill').style.width = (currentQ / quizData.length * 100) + '%';
+}
+
+function showResults() {
+  document.querySelectorAll('.question').forEach(q => q.classList.remove('active'));
+  document.getElementById('results').classList.add('active');
+  const pct = Math.round((correctCount / quizData.length) * 100);
+  document.getElementById('score').textContent = pct + '%';
+  document.getElementById('score-text').textContent = tr.scoreText.replace('{correct}', correctCount).replace('{total}', quizData.length);
+  document.querySelector('.progress-fill').style.width = '100%';
+}
+
+function restart() {
+  currentQ = 0; correctCount = 0; answered = false;
+  document.getElementById('results').classList.remove('active');
+  document.querySelectorAll('.question').forEach((q, i) => {
+    q.classList.toggle('active', i === 0);
+    q.querySelectorAll('.option').forEach(o => o.classList.remove('selected', 'correct', 'incorrect', 'disabled', 'show-correct'));
+    q.querySelectorAll('.option-feedback').forEach(f => {
+      f.classList.add('hidden');
+      f.classList.remove('correct-feedback', 'incorrect-feedback');
+    });
+    const btn = q.querySelector('.next-btn');
+    btn.classList.add('hidden');
+    btn.textContent = tr.next;
+  });
+  updateProgress();
+}
+
+init();
+</script>
+</body>
+</html>
